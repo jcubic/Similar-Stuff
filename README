@@ -1,0 +1,21 @@
+This program display similar things (like music, movies, TV shows, books and author) if you use it without options, display descriptions if you use -d option, and transalate them to your language with -l option. Check -h options for more info.
+
+You need xgoogle library to it to work, you can download it from 
+http://www.catonmat.net/download/xgoogle.zip
+
+if you want to download all youtube files (on GNU/linux) use youtube-dl
+
+on Debian/Ubuntu
+
+apt-get instll youtube-dl
+
+or
+
+wget http://www.nuxified.org/system/files/youtube-install.sh
+sudo ./youtube-install.sh
+
+and then run the script:
+
+for i in `similar.py -y $1 | grep http`; do
+    youtube-dl $i
+done
