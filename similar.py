@@ -184,8 +184,10 @@ def main():
 			    print translate(stuff.description, lang_to=lang)
 			else:
 			    print stuff.description
-    except URLError:
-	    print >> stderr, "Error: you're not connected to the internet" 
+	except URLError:
+	    print >> stderr, "Error: you're not connected to the internet"
+	except AttributeError:
+	    print >> stderr, "No result"
 	except ServerJsonException:
 	    print >> stderr, "Error: can't read recived data from the server"
 
