@@ -18,13 +18,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #from urllib import urlencode
-from urllib2 import urlopen, Request, HTTPError
+from urllib2 import urlopen, Request, HTTPError, URLError
 from urllib import quote_plus
 from sys import argv, stderr
 from os.path import basename
 from getopt import getopt, GetoptError
 from StringIO import StringIO
 import json
+import re
 
 def gets(dict, *keys):
     "function generate values from dictionary which is on the list."  
@@ -183,6 +184,8 @@ def main():
 			    print translate(stuff.description, lang_to=lang)
 			else:
 			    print stuff.description
+    except URLError:
+	    print >> stderr, "Error: you're not connected to the internet" 
 	except ServerJsonException:
 	    print >> stderr, "Error: can't read recived data from the server"
 
