@@ -30,12 +30,12 @@ import re
 def gets(dict, *keys):
     "function generate values from dictionary which is on the list."  
     for e in keys:
-	yield dict[e]
+        yield dict[e]
 
 def partial_first(fun, *args):
     "return single argument function which execute function fun with arguments."
     def p(object):
-	return fun(object, *args)
+        return fun(object, *args)
     return p
 
 def gets_fun(*args):
@@ -44,42 +44,48 @@ def gets_fun(*args):
 
 class ServerJsonException(Exception):
     pass
-	
+
+class TastekitException(Exception):
+    pass
+        
 class Similar(object):
     def __init__(self, stuff, type=None):
-	query = quote_plus(stuff)
-	if type:
-	    query = '%s:%s' % (type, query)
-	url = 'http://www.tastekid.com/ask/ws?&q=%s&format=JSON&verbose=1'
-	response_data = urlopen(url % query).read()
-	if not re.match('{.*}', response_data):
-	    raise ServerJsonException
-	#fix malform json
-	response_data = response_data.replace('}{', '},{')
-	self.data = json.load(StringIO(response_data))
-	
+        query = quote_plus(stuff)
+        if type:
+            query = '%s:%s' % (type, query)
+        url = 'https://www.tastekid.com/api/similar?q=%s&info=1'
+        response_data = urlopen(url % query).read()
+        if not re.match('{.*}', response_data):
+            raise ServerJsonException
+        #fix malform json
+        #response_data = response_data.replace('}{', '},{')
+        self.data = json.load(StringIO(response_data))
+        if self.data['error']:
+            raise TastekitException(self.data['error'])
+        
     def infos(self):
-	for i in self.data['Similar']['Info']:
-	    yield Similar.Stuff(*list(gets(i, 'Name', 'Type', 'wTeaser')))
+        for i in self.data['Similar']['Info']:
+            yield Similar.Stuff(*list(gets(i, 'Name', 'Type', 'wTeaser')))
 
     def similar(self):
-	"generate list of Stuff."
-	results = self.data['Similar']['Results']
-	if len(results) == 0:
-	    yield None
-	for result in results:
-	    elems = list(gets(result, 'Name', 'Type', 'wTeaser', 'yTitle', 'yUrl'))
-	    yield Similar.Stuff(*elems)
-	    
+        "generate list of Stuff."
+        results = self.data['Similar']['Results']
+        if len(results) == 0:
+            yield None
+        for result in results:
+            elems = list(gets(result, 'Name', 'Type', 'wTeaser', 'yUrl'))
+            yield Similar.Stuff(*elems)
+            
     class Stuff(object):
-	def __init__(self, name, type, description, y_title=None, y_url=None):
-	    self.name = name.encode('UTF-8')
-	    self.type = type.encode('UTF-8')
-	    self.description = description.encode('UTF-8')
-	    if y_title:
-		self.y_title = y_title.encode('UTF-8')
-	    if y_url:
-		self.y_url = y_url.encode('UTF-8')
+        def __init__(self, name, type, description, y_title=None, y_url=None):
+            self.name = name.encode('UTF-8')
+            self.type = type.encode('UTF-8')
+            if description:
+                self.description = description.encode('UTF-8')
+            if y_title:
+                self.y_title = y_title.encode('UTF-8')
+            if y_url:
+                self.y_url = yUrl.encode('UTF-8')
 
 usage = """usage:
 %s -d -i -y -l <lang> <search query>
@@ -157,39 +163,41 @@ def main():
     youtube = opts.has_key('-y')
     lang = opts.get('-l')
     if len(rest) == 0:
-	print usage
+        print usage
     else:
-	try:
-	    stuff = Similar(' '.join(rest))
-	    if info:
-		for info in stuff.infos():
-		    print '%s (%s)' % (info.name, info.type)
-		    if lang:
-			from xgoogle.translate import Translator
-			translate = Translator().translate
-			print translate(info.description, lang_to=lang)
-		    else:
-			print info.description
-	    else:
-		for stuff in stuff.similar():
-		    print stuff.name
-		    if youtube:
-			print 'Youtube:'
-			print '\t%s' % stuff.y_title
-			print '\t%s' % stuff.y_url
-		    if description:
-			if lang:
-			    from xgoogle.translate import Translator
-			    translate = Translator().translate
-			    print translate(stuff.description, lang_to=lang)
-			else:
-			    print stuff.description
-	except URLError:
-	    print >> stderr, "Error: you're not connected to the internet"
-	except AttributeError:
-	    print >> stderr, "No result"
-	except ServerJsonException:
-	    print >> stderr, "Error: can't read recived data from the server"
+        try:
+            stuff = Similar(' '.join(rest))
+            if info:
+                for info in stuff.infos():
+                    print '%s (%s)' % (info.name, info.type)
+                    if lang:
+                        from xgoogle.translate import Translator
+                        translate = Translator().translate
+                        print translate(info.description, lang_to=lang)
+                    else:
+                        print info.description
+            else:
+                for stuff in stuff.similar():
+                    print stuff.name
+                    if youtube:
+                        print 'Youtube:'
+                        print '\t%s' % stuff.y_title
+                        print '\t%s' % stuff.y_url
+                    if description:
+                        if lang:
+                            from xgoogle.translate import Translator
+                            translate = Translator().translate
+                            print translate(stuff.description, lang_to=lang)
+                        else:
+                            print stuff.description
+        except TastekitException as e:
+            print >> stderr, e.message
+        except URLError:
+            print >> stderr, "Error: you're not connected to the internet"
+        except AttributeError:
+            print >> stderr, "No result"
+        except ServerJsonException:
+            print >> stderr, "Error: can't read recived data from the server"
 
 
 if __name__ == '__main__':
