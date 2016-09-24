@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #from urllib import urlencode
-from urllib2 import urlopen, Request, HTTPError, URLError
+from urllib2 import urlopen, quote, Request, HTTPError, URLError
 from urllib import quote_plus
 from sys import argv, stderr
 from os.path import basename
@@ -49,23 +49,23 @@ class TastekitException(Exception):
     pass
         
 class Similar(object):
-    def __init__(self, stuff, type=None):
-        query = quote_plus(stuff)
+    def __init__(self, query, type=None):
         if type:
             query = '%s:%s' % (type, query)
-        url = 'https://www.tastekid.com/api/similar?q=%s&info=1'
-        response_data = urlopen(url % query).read()
+        query = quote_plus(query.encode("utf8"))
+        url = 'https://www.tastekid.com/api/similar?q=%s&info=1' % query
+        response_data = urlopen(url).read()
         if not re.match('{.*}', response_data):
             raise ServerJsonException
         #fix malform json
         #response_data = response_data.replace('}{', '},{')
         self.data = json.load(StringIO(response_data))
-        if self.data['error']:
+        if 'error' in self.data:
             raise TastekitException(self.data['error'])
         
     def infos(self):
         for i in self.data['Similar']['Info']:
-            yield Similar.Stuff(*list(gets(i, 'Name', 'Type', 'wTeaser')))
+            yield Similar.Stuff(*list(gets(i, 'Name', 'Type', 'wTeaser', 'yUrl')))
 
     def similar(self):
         "generate list of Stuff."
@@ -77,18 +77,16 @@ class Similar(object):
             yield Similar.Stuff(*elems)
             
     class Stuff(object):
-        def __init__(self, name, type, description, y_title=None, y_url=None):
+        def __init__(self, name, type, description, y_url=None):
             self.name = name.encode('UTF-8')
             self.type = type.encode('UTF-8')
             if description:
                 self.description = description.encode('UTF-8')
-            if y_title:
-                self.y_title = y_title.encode('UTF-8')
             if y_url:
-                self.y_url = yUrl.encode('UTF-8')
+                self.y_url = y_url.encode('UTF-8')
 
 usage = """usage:
-%s -d -i -y -l <lang> <search query>
+%s -d -i -y -l <lang> <comma separated list of stuff>
 d - display descriptions
 i - display only info
 y - display youtube links
